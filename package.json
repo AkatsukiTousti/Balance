@@ -1,0 +1,23 @@
+{
+  "name": "projet_balance",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+"scripts": {
+  "start": "node index.js"
+}
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AkatsukiTousti/Balance.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AkatsukiTousti/Balance/issues"
+  },
+  "homepage": "https://github.com/AkatsukiTousti/Balance#readme",
+  "description": ""
+}
