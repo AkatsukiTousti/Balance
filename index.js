@@ -1,13 +1,13 @@
-const http = require('http');
+const express = require("express");
+const app = express();
 
-// Render impose l'utilisation de process.env.PORT
+// Utiliser le port fourni par Render
 const PORT = process.env.PORT || 3000;
 
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Hello depuis Render 🚀');
+app.get("/", (req, res) => {
+  res.send("Hello depuis Render !");
 });
 
-server.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`Serveur démarré sur le port ${PORT}`);
 });
