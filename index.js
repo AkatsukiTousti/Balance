@@ -1,29 +1,27 @@
 const express = require("express");
 const axios = require("axios");
-require("dotenv").config(); // Charge les variables d’environnement
+require("dotenv").config();
 
 const app = express();
 app.use(express.json());
 
 let accessTokenGlobal = "";
 
-// Route racine
+// Root
 app.get("/", (req, res) => {
   res.send("Serveur en ligne 🚀 !");
 });
 
-// Auth Withings
+// OAuth Withings
 app.get("/auth", (req, res) => {
-  const clientID = process.env.CLIENT_ID;
-  const redirectUri = process.env.REDIRECT_URI;
-  const authUrl = `https://account.withings.com/oauth2_user/authorize?response_type=code&client_id=${clientID}&scope=user.metrics&redirect_uri=${redirectUri}`;
+  const authUrl = `https://account.withings.com/oauth2_user/authorize?response_type=code&client_id=${process.env.CLIENT_ID}&scope=user.metrics&redirect_uri=${process.env.REDIRECT_URI}`;
   res.redirect(authUrl);
 });
 
 // Callback Withings
 app.get("/callback", async (req, res) => {
-  const code = req.query.code;
-  if (!code) return res.status(400).send("Code de validation manquant.");
+  const { code } = req.query;
+  if (!code) return res.status(400).send("Code manquant");
 
   try {
     const response = await axios.post("https://account.withings.com/oauth2/token", null, {
@@ -37,17 +35,19 @@ app.get("/callback", async (req, res) => {
     });
 
     accessTokenGlobal = response.data.access_token;
-    console.log("✔️ Access token :", accessTokenGlobal);
-    res.send("✅ Connecté ! Vous pouvez retourner dans l'application.");
+    console.log("✅ Access token :", accessTokenGlobal);
+
+    // Redirige vers ton appli Android (via Deep Link)
+    res.redirect("balanceapp://connected");
   } catch (err) {
-    console.error("❌ Erreur callback :", err.response?.data || err.message);
-    res.status(500).send("Erreur d’authentification.");
+    console.error("Erreur OAuth :", err.response?.data || err.message);
+    res.status(500).send("Erreur d'authentification.");
   }
 });
 
-// Route pour récupérer les mesures
+// Données Withings
 app.get("/data", async (req, res) => {
-  if (!accessTokenGlobal) return res.status(403).send("Token non trouvé.");
+  if (!accessTokenGlobal) return res.status(403).send("Non authentifié");
 
   try {
     const response = await axios.get("https://wbsapi.withings.net/measure", {
@@ -56,15 +56,15 @@ app.get("/data", async (req, res) => {
         access_token: accessTokenGlobal,
       },
     });
+
     res.json(response.data);
   } catch (err) {
-    console.error("Erreur API Withings :", err.response?.data || err.message);
+    console.error("Erreur récupération données :", err.response?.data || err.message);
     res.status(500).send("Erreur récupération données.");
   }
 });
 
-// Lancer le serveur
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Serveur en ligne sur http://localhost:${PORT}`);
+  console.log(`🚀 Serveur actif sur http://localhost:${PORT}`);
 });
