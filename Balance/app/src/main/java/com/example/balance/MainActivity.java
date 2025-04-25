@@ -1,12 +1,10 @@
+// MainActivity.java
 package com.example.balance;
 
 import android.os.Bundle;
 import android.app.Activity;
-import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
-import android.os.AsyncTask;
 import android.util.Log;
+import android.widget.TextView;
 
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -23,39 +21,35 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         wifiHelper = new WiFiManagerHelper(this);
-        balanceReceiver = new BalanceDataReceiver("192.168.1.100", 8080); // Remplace par l'IP et le port de ta balanc
+        balanceReceiver = new BalanceDataReceiver("192.168.1.100", 8080); // IP de la balance
 
         wifiHelper.enableWiFi();
-
-
+        // Ajoute ici un exemple de réception de poids et d'envoi au backend Render
+        String poidsExemple = "75.2";
+        new Thread(() -> sendWeightToBackend(poidsExemple)).start();
     }
 
-    // Classe interne pour envoyer les données à Postman
-    private static class SendToPostmanTask extends AsyncTask<String, Void, Void> {
-        @Override
-        protected Void doInBackground(String... params) {
-            try {
-                String weight = params[0];
-                URL url = new URL("https://api.postman.com/your-endpoint"); // Remplace par ton URL Postman
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json");
-                conn.setDoOutput(true);
+    // Envoie de données vers ton serveur Node.js sur Render
+    private void sendWeightToBackend(String weight) {
+        try {
+            URL url = new URL("https://balance-xln2.onrender.com/data");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
 
-                String jsonInputString = "{\"weight\": \"" + weight + "\"}";
+            String jsonInputString = "{\"weight\": \"" + weight + "\"}";
 
-                try (OutputStream os = conn.getOutputStream()) {
-                    byte[] input = jsonInputString.getBytes("utf-8");
-                    os.write(input, 0, input.length);
-                }
-
-                int responseCode = conn.getResponseCode();
-                Log.d("Postman", "Response Code: " + responseCode);
-
-            } catch (Exception e) {
-                Log.e("Postman", "Erreur lors de l'envoi des données", e);
+            try (OutputStream os = conn.getOutputStream()) {
+                byte[] input = jsonInputString.getBytes("utf-8");
+                os.write(input, 0, input.length);
             }
-            return null;
+
+            int responseCode = conn.getResponseCode();
+            Log.d("Backend", "Code réponse Render : " + responseCode);
+
+        } catch (Exception e) {
+            Log.e("Backend", "Erreur d'envoi des données à Render", e);
         }
     }
 }

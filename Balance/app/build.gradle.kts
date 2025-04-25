@@ -44,6 +44,7 @@ dependencies {
     implementation ("androidx.browser:browser:1.4.0") // Pour ouvrir OAuth dans un navigateur
     implementation ("com.google.android.material:material:1.8.0")
     implementation ("com.google.android.material:material:1.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

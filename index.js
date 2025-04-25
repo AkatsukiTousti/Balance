@@ -1,57 +1,70 @@
 const express = require("express");
 const axios = require("axios");
-require("dotenv").config(); // Charge les variables d'environnement
+require("dotenv").config(); // Charge les variables d’environnement
 
 const app = express();
+app.use(express.json());
 
-// Déclaration des routes
+let accessTokenGlobal = "";
+
+// Route racine
 app.get("/", (req, res) => {
   res.send("Serveur en ligne 🚀 !");
 });
 
-// Vérifie que les variables sont bien chargées
-const clientID = process.env.CLIENT_ID;
-const clientSecret = process.env.CLIENT_SECRET;
-const redirectUri = process.env.REDIRECT_URI || "https://balance-xln2.onrender.com";
-
-if (!clientID || !clientSecret) {
-  console.error("❌ ERREUR: CLIENT_ID ou CLIENT_SECRET non défini !");
-  process.exit(1);
-}
-
-// Route d'authentification
+// Auth Withings
 app.get("/auth", (req, res) => {
-  const authUrl = `https://account.withings.com/oauth2_user/authorize?response_type=code&client_id=${clientID}&scope=user.info&redirect_uri=${redirectUri}`;
+  const clientID = process.env.CLIENT_ID;
+  const redirectUri = process.env.REDIRECT_URI;
+  const authUrl = `https://account.withings.com/oauth2_user/authorize?response_type=code&client_id=${clientID}&scope=user.metrics&redirect_uri=${redirectUri}`;
   res.redirect(authUrl);
 });
 
-// Route de callback
+// Callback Withings
 app.get("/callback", async (req, res) => {
-  const { code } = req.query;
+  const code = req.query.code;
   if (!code) return res.status(400).send("Code de validation manquant.");
 
   try {
     const response = await axios.post("https://account.withings.com/oauth2/token", null, {
       params: {
-        client_id: clientID,
-        client_secret: clientSecret,
-        code,
         grant_type: "authorization_code",
-        redirect_uri: redirectUri,
+        client_id: process.env.CLIENT_ID,
+        client_secret: process.env.CLIENT_SECRET,
+        code,
+        redirect_uri: process.env.REDIRECT_URI,
       },
     });
 
-    const accessToken = response.data.access_token;
-    console.log("✔️ Token d'accès obtenu :", accessToken);
-    res.send(`Token d'accès obtenu : ${accessToken}`);
-  } catch (error) {
-    console.error("❌ Erreur de récupération du token :", error.response?.data || error.message);
-    res.status(500).send("Erreur lors de l'authentification.");
+    accessTokenGlobal = response.data.access_token;
+    console.log("✔️ Access token :", accessTokenGlobal);
+    res.send("✅ Connecté ! Vous pouvez retourner dans l'application.");
+  } catch (err) {
+    console.error("❌ Erreur callback :", err.response?.data || err.message);
+    res.status(500).send("Erreur d’authentification.");
   }
 });
 
-// Port dynamique pour Render
+// Route pour récupérer les mesures
+app.get("/data", async (req, res) => {
+  if (!accessTokenGlobal) return res.status(403).send("Token non trouvé.");
+
+  try {
+    const response = await axios.get("https://wbsapi.withings.net/measure", {
+      params: {
+        action: "getmeas",
+        access_token: accessTokenGlobal,
+      },
+    });
+    res.json(response.data);
+  } catch (err) {
+    console.error("Erreur API Withings :", err.response?.data || err.message);
+    res.status(500).send("Erreur récupération données.");
+  }
+});
+
+// Lancer le serveur
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`);
+  console.log(`🚀 Serveur en ligne sur http://localhost:${PORT}`);
 });
